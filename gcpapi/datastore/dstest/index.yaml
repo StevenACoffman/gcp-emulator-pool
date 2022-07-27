@@ -1,0 +1,2155 @@
+# TODO(csilvers): I don't think we use `__scatter__` anymore in
+# mapreduces so we can probably delete all indexes involving it.
+# BUT(pamela): If adding a *new* mapreduce, you should probably add
+# whatever __scatter__ index is recommended by the logs.
+
+# In order to add indexes correctly, we need to add them using the following
+# order:
+# 1. Properties used in equality filters
+# 2. Property used in an inequality filter (of which there can be no more than
+#    one)
+# 3. Properties used in sort orders
+# 4. Properties used in projections (that are not already included in sort
+#    orders)
+#
+# See
+# https://cloud.google.com/datastore/docs/concepts/indexes#index_definition_and_structure
+
+indexes:
+
+# The next 4 indexes on Feedback are used by BackfillAutoPassProjects
+# and can be deleted once the backfill is run
+- kind: Feedback
+  properties:
+  - name: topic_ids
+  - name: __scatter__
+
+- kind: Feedback
+  properties:
+  - name: topic_ids
+  - name: types
+  - name: __scatter__
+
+- kind: Feedback
+  properties:
+  - name: deleted
+  - name: topic_ids
+  - name: types
+  - name: __scatter__
+
+- kind: Feedback
+  properties:
+  - name: answer_count
+  - name: deleted
+  - name: topic_ids
+  - name: types
+  - name: __scatter__
+
+- kind: UserEmailSubscription
+  properties:
+  - name: subscription_type
+  - name: __scatter__
+
+- kind: UnverifiedUser
+  properties:
+  - name: created
+  - name: reminded
+  - name: __scatter__
+
+# Used for dev.backfill.backfill_converted_user_challenges
+- kind: UserScratchpad
+  properties:
+  - name: last_updated
+  - name: __scatter__
+
+# Used for scratchpad spin-off queries with SORT_OLDEST
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: origin_scratchpad
+  - name: user_id
+  - name: created
+
+# Used for project spin-off queries (when user is viewing project)
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: origin_scratchpad
+  - name: user_id
+  - name: created
+
+  # Used for project spin-off queries (when user is viewing project)
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: origin_scratchpad
+  - name: user_id
+  - name: created
+
+############# TOP LIST ##########
+
+
+### Top lists using is_hidden_by_flags and category (hot, top, and upvote) ###
+
+# top list - for browse display on landing page
+- kind: Scratchpad
+  properties:
+  - name: is_hidden_by_flags
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: unique_enough
+  - name: category
+  - name: time_dependent_score
+    direction: desc
+
+# top list - hot
+- kind: Scratchpad
+  properties:
+  - name: is_hidden_by_flags
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: topic_ids
+  - name: unique_enough
+  - name: category
+  - name: time_dependent_score
+    direction: desc
+
+# top list - top
+- kind: Scratchpad
+  properties:
+  - name: is_hidden_by_flags
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: topic_ids
+  - name: unique_enough
+  - name: category
+  - name: upvotes
+    direction: desc
+
+# top list - recent
+- kind: Scratchpad
+  properties:
+  - name: is_hidden_by_flags
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: topic_ids
+  - name: unique_enough
+  - name: created
+    direction: desc
+
+# top list for projects - hot
+- kind: Scratchpad
+  properties:
+  - name: is_hidden_by_flags
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_is_project
+  - name: topic_ids
+  - name: unique_enough
+  - name: category
+  - name: time_dependent_score
+    direction: desc
+
+# top list for projects - top
+- kind: Scratchpad
+  properties:
+  - name: is_hidden_by_flags
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_is_project
+  - name: topic_ids
+  - name: unique_enough
+  - name: category
+  - name: upvotes
+    direction: desc
+
+# top list for projects - recent
+- kind: Scratchpad
+  properties:
+  - name: is_hidden_by_flags
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_is_project
+  - name: topic_ids
+  - name: unique_enough
+  - name: created
+    direction: desc
+
+# top list for projects - recent (no topic)
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: is_hidden_by_flags
+  - name: origin_is_project
+  - name: unique_enough
+  - name: created
+    direction: desc
+
+############# SPIN-OFFS ##########
+
+# spinoffs - recent
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: origin_scratchpad
+  - name: created
+    direction: desc
+
+# spinoffs - recent w/ origin_similarity
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: origin_scratchpad
+  - name: origin_similarity
+  - name: created
+    direction: desc
+
+# spinoffs - top
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: origin_scratchpad
+  - name: time_independent_score
+    direction: desc
+
+# spinoffs - top w/ origin_similarity
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: origin_scratchpad
+  - name: origin_similarity
+  - name: time_independent_score
+    direction: desc
+
+# Spin-offs - top/recent (with changed_anything)
+# NOTE(pamela): Can be deleted once index builds for ones below these 2
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: changed_anything
+  - name: deleted
+  - name: origin_scratchpad
+  - name: time_independent_score
+    direction: desc
+
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: changed_anything
+  - name: deleted
+  - name: origin_scratchpad
+  - name: created
+    direction: desc
+
+# Spin-offs - top/recent (with user_status)
+
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: changed_anything
+  - name: deleted
+  - name: origin_scratchpad
+  - name: user_status
+  - name: created
+    direction: desc
+
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: changed_anything
+  - name: deleted
+  - name: origin_scratchpad
+  - name: user_status
+  - name: time_independent_score
+    direction: desc
+
+# Spin-offs - top/recent
+# (with kaid instead of by_child so that parents can see spin-offs by their
+# children)
+
+- kind: Scratchpad
+  properties:
+  - name: changed_anything
+  - name: deleted
+  - name: kaid
+  - name: origin_scratchpad
+  - name: user_status
+  - name: created
+    direction: desc
+
+- kind: Scratchpad
+  properties:
+  - name: changed_anything
+  - name: deleted
+  - name: kaid
+  - name: origin_scratchpad
+  - name: user_status
+  - name: time_independent_score
+    direction: desc
+
+# coach program list - projects, filter by topic
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: topic_ids
+  - name: origin_is_project
+  - name: user_id
+  - name: created
+    direction: desc
+
+# coach program list - projects, filter by topic
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: topic_ids
+  - name: origin_is_project
+  - name: user_key
+  - name: created
+    direction: desc
+
+# profile program list - recent, filter by topic
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: topic_ids
+  - name: user_id
+  - name: created
+    direction: desc
+
+# profile program list - recent, filter by topic
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: topic_ids
+  - name: user_key
+  - name: created
+    direction: desc
+
+# profile program list - top, filter by topic
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: topic_ids
+  - name: user_id
+  - name: time_independent_score
+    direction: desc
+
+# profile program list - top, filter by topic
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: topic_ids
+  - name: user_key
+  - name: time_independent_score
+    direction: desc
+
+# profile program list - recent, viewer looking at, filtered by topic
+- kind: Scratchpad
+  properties:
+  - name: user_id
+  - name: topic_ids
+  - name: created
+    direction: desc
+
+# profile program list - recent, viewer looking at, filtered by topic
+- kind: Scratchpad
+  properties:
+  - name: user_key
+  - name: topic_ids
+  - name: created
+    direction: desc
+
+# profile program list - top, viewer looking at, filtered by topic
+- kind: Scratchpad
+  properties:
+  - name: user_id
+  - name: topic_ids
+  - name: time_independent_score
+    direction: desc
+
+
+# profile program list - top, viewer looking at, filtered by topic
+- kind: Scratchpad
+  properties:
+  - name: user_key
+  - name: topic_ids
+  - name: time_independent_score
+    direction: desc
+
+# profile program list - KA picks, filtered by topic
+- kind: Scratchpad
+  properties:
+  - name: category
+  - name: topic_ids
+  - name: created
+    direction: desc
+
+# coach program list - projects
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: origin_is_project
+  - name: user_id
+  - name: created
+    direction: desc
+
+# coach program list - projects
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: origin_is_project
+  - name: user_key
+  - name: created
+    direction: desc
+
+# profile program list - recent
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: user_id
+  - name: created
+    direction: desc
+
+# profile program list - recent
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: user_key
+  - name: created
+    direction: desc
+
+# profile program list - top
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: user_id
+  - name: time_independent_score
+    direction: desc
+
+# profile program list - top
+- kind: Scratchpad
+  properties:
+  - name: deleted
+  - name: user_key
+  - name: time_independent_score
+    direction: desc
+
+# profile program list - recent, viewer looking at
+- kind: Scratchpad
+  properties:
+  - name: user_id
+  - name: created
+    direction: desc
+
+# profile program list - recent, viewer looking at
+- kind: Scratchpad
+  properties:
+  - name: user_key
+  - name: created
+    direction: desc
+
+# profile program list - top, viewer looking at
+- kind: Scratchpad
+  properties:
+  - name: user_id
+  - name: time_independent_score
+    direction: desc
+
+
+# profile program list - top, viewer looking at
+- kind: Scratchpad
+  properties:
+  - name: user_key
+  - name: time_independent_score
+    direction: desc
+
+# profile program list - KA picks
+- kind: Scratchpad
+  properties:
+  - name: category
+  - name: created
+    direction: desc
+
+# official / tutorials / documentation / sanctioned / published
+- kind: Scratchpad
+  properties:
+  - name: category
+  - name: deleted
+
+# moderation - flagged
+- kind: Scratchpad
+  properties:
+  - name: definitely_not_spam
+  - name: deleted
+  - name: is_flagged
+  - name: time_independent_score
+
+# used in scratchpads.models.Scratchpad.check_badges
+- kind: Scratchpad
+  properties:
+  - name: origin_scratchpad
+  - name: user_id
+
+# used in scratchpads.models.Scratchpad.check_badges
+- kind: Scratchpad
+  properties:
+  - name: origin_scratchpad
+  - name: user_key
+
+# used in scratchpads.models.Scratchpad.check_badges
+- kind: Scratchpad
+  properties:
+  - name: changed_anything
+  - name: origin_scratchpad
+  - name: user_id
+
+# used in scratchpads.models.Scratchpad.check_badges
+- kind: Scratchpad
+  properties:
+  - name: changed_anything
+  - name: origin_scratchpad
+  - name: user_status
+  - name: user_id
+
+# used to filter the browse page for only certain topics
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: topic_ids
+  - name: origin_similarity
+  - name: time_dependent_score
+    direction: desc
+
+# used to filter the browse spotlight list
+- kind: Scratchpad
+  properties:
+  - name: is_hidden_by_flags
+  - name: category
+  - name: topic_ids
+  - name: created
+    direction: desc
+
+# used to filter the browse top list
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: topic_ids
+  - name: origin_similarity
+  - name: upvotes
+    direction: desc
+
+# used to filter the browse recent
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: topic_ids
+  - name: origin_similarity
+  - name: created
+    direction: desc
+
+# Used for /sitemaps/computer-programming/programs/sitemap.xml
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: is_hidden_by_flags
+  - name: unique_enough
+  - name: created
+    direction: desc
+
+# Used for moderator queue "newest first"
+- kind: Scratchpad
+  properties:
+  - name: definitely_not_spam
+  - name: deleted
+  - name: is_flagged
+  - name: created
+    direction: desc
+
+# Used for moderator queue "oldest first"
+- kind: Scratchpad
+  properties:
+  - name: definitely_not_spam
+  - name: deleted
+  - name: is_flagged
+  - name: created
+
+#  Used for moderator queue "Flagged"
+- kind: Scratchpad
+  properties:
+  - name: definitely_not_spam
+  - name: deleted
+  - name: is_flagged
+  - name: upvotes
+
+# used in api/internal/eduorg.py
+- kind: EduOrganization
+  properties:
+  - name: location.postal_code
+  - name: name
+
+# used in api/internal/topics.py
+- kind: TopicPublishStatus
+  properties:
+  - name: topic_ids
+  - name: queue_insert_time
+    direction: desc
+
+# query in content_analytics/models for the oldest clarification on a video
+- kind: Feedback
+  properties:
+  - name: targets
+  - name: date
+
+# query in discussions/moderation.py to sort by date
+- kind: Feedback
+  properties:
+  - name: deleted
+  - name: is_flagged
+  - name: types
+  - name: date
+    direction: desc
+
+- kind: Feedback
+  properties:
+  - name: deleted
+  - name: is_flagged
+  - name: types
+  - name: date
+
+# TODO(james): I can't get app engine to complain to me when I remove this
+# entry (and the other entry that has "targets" at the top of this file) and
+# I visit the discussion page, so I am not sure that it is even getting used.
+# The main query does not need date desc, but looking at recent discussion
+# should.  I will investigate more and yet another entry without date desc if
+# this could not be reused for both queries, and will delete this entry if we
+# determine it is not really needed.
+- kind: Feedback
+  ancestor: yes
+  properties:
+  - name: language_tag
+  - name: targets
+  - name: date
+    direction: desc
+
+# Used by discussion.qa._get_feedback_page_for_focus when sorting by points
+- kind: Feedback
+  properties:
+  - name: language_tag
+  - name: targets
+  - name: types
+  - name: is_visible_to_public
+    direction: desc
+  - name: inner_score
+    direction: desc
+- kind: Feedback
+  properties:
+  - name: language_tag
+  - name: targets
+  - name: types
+  - name: author_user_id
+  - name: inner_score
+    direction: desc
+
+# Used by discussion.qa._get_feedback_page_for_focus when sorting by date
+- kind: Feedback
+  properties:
+  - name: language_tag
+  - name: targets
+  - name: types
+  - name: is_visible_to_public
+    direction: desc
+  - name: date
+    direction: desc
+- kind: Feedback
+  properties:
+  - name: language_tag
+  - name: targets
+  - name: types
+  - name: author_user_id
+  - name: date
+    direction: desc
+
+# Used by discussion.qa._get_feedback_page_for_focus when sorting by date
+# and only keeping questions that are quality and unanswered
+- kind: Feedback
+  properties:
+  - name: answer_count
+  - name: is_quality_question
+  - name: language_tag
+  - name: targets
+  - name: types
+  - name: is_visible_to_public
+    direction: desc
+  - name: date
+    direction: desc
+- kind: Feedback
+  properties:
+  - name: answer_count
+  - name: is_quality_question
+  - name: language_tag
+  - name: targets
+  - name: types
+  - name: author_user_id
+  - name: date
+    direction: desc
+
+# Used to find the oldest outstanding clarification on a video for the
+# contentanalytics dashboard
+- kind: Feedback
+  properties:
+  - name: is_visible_to_public
+  - name: language_tag
+  - name: targets
+  - name: date
+
+# Used in devpanel/handlers.py:ExportClarificationCounts.get()
+- kind: Feedback
+  properties:
+  - name: types
+  - name: is_visible_to_public
+
+# Used in util_discussion.py~get_feedback_by_author_async()
+- kind: Feedback
+  properties:
+  - name: author_user_id
+  - name: deleted
+  - name: types
+  - name: date
+    direction: desc
+
+# Used in util_discussion.py~get_topic_questions_and_cached_answers
+- kind: Feedback
+  properties:
+  - name: topic_ids
+  - name: types
+  - name: language_tag
+  - name: deleted
+  - name: date
+    direction: desc
+
+# Used in util_discussion.py~get_topic_questions_and_cached_answers for
+# unanswered projectevals
+- kind: Feedback
+  properties:
+  - name: deleted
+  - name: language_tag
+  - name: topic_ids
+  - name: types
+  - name: answer_count
+  - name: date
+
+# Used in util_discussion.py~get_topic_questions_and_cached_answers for
+# answered projectevals and answered projecthelp.
+- kind: Feedback
+  properties:
+  - name: deleted
+  - name: language_tag
+  - name: topic_ids
+  - name: types
+  - name: answer_count
+  - name: last_answer_date
+    direction: desc
+
+# Used for querying project evals according to difficulty
+- kind: Feedback
+  properties:
+  - name: answer_count
+  - name: deleted
+  - name: language_tag
+  - name: topic_ids
+  - name: types
+  - name: content_difficulty
+  - name: date
+
+# Used in backfill.py~backfill_user_scratchpads to get the most recent
+# project eval request or response
+- kind: Feedback
+  properties:
+  - name: answer_count
+  - name: targets
+  - name: types
+  - name: date
+    direction: desc
+
+# Used in backfill.py~backfill_user_scratchpads to get the most recent
+# project eval request or response
+- kind: Feedback
+  properties:
+  - name: targets
+  - name: types
+  - name: date
+    direction: desc
+
+# Used for querying HellbanModerationLog by target_user_id and sort by time
+- kind: ModerationLog
+  properties:
+  - name: class
+  - name: target_user_id
+  - name: date
+    direction: desc
+
+- kind: UserTopic
+  properties:
+  - name: user
+  - name: last_practiced
+    direction: desc
+
+# Used to quickly find active subject mastery assignment for a student
+# services.assignments.course_mastery_assignments.course_mastery_assignments_for_user:getActiveCourseMasteryAssignmentsForStudent
+- kind: SubjectMasteryAssignment
+  properties:
+  - name: active_student_data.kaid
+  - name: is_archived
+
+# Used to quickly find historical subject mastery assignment for a student
+# services.assignments.course_mastery_assignments.course_mastery_assignments_for_user:getHistoricalCourseMasteryAssignmentsForStudent
+- kind: SubjectMasteryAssignment
+  properties:
+  - name: historical_student_data.kaid
+  - name: is_archived
+
+# Used to quickly find relevant subject mastery assignment for a student for specific topic
+# services.assignments.course_mastery_assignments.course_mastery_assignments_for_user:getActiveCourseMasteryAssignmentsForStudent
+- kind: SubjectMasteryAssignment
+  properties:
+  - name: active_student_data.kaid
+  - name: topic_id
+  - name: is_archived
+
+# Used to quickly find all subject mastery assignments for a given class. We
+# add this composite index even though all the fields are individually indexed
+# because student_list_id is not very unique across the datastore, so it can be
+# slow to find the assignments for a single class if a coach has many
+# assignments across many classes.
+- kind: SubjectMasteryAssignment
+  properties:
+  - name: coach_kaid
+  - name: student_list_id
+  - name: is_archived
+
+# Used to quickly find all kmap subject mastery assignments for a given class.
+# We add this composite index even though all the fields are individually
+# indexed because student_list_id is not very unique across the datastore, so
+# it can be slow to find the assignments for a single class if a coach has many
+# assignments across many classes.
+- kind: SubjectMasteryAssignment
+  properties:
+  - name: coach_kaid
+  - name: student_list_id
+  - name: is_kmap
+  - name: is_archived
+
+# Used to quickly identify which of an assignee's active course mastery
+# assignments has a due date furthest in the future within a particular
+# classroom
+- kind: SubjectMasteryAssignment
+  properties:
+  - name: active_student_data.kaid
+  - name: coach_kaid
+  - name: student_list_id
+  - name: is_kmap
+  - name: is_archived
+  - name: due_date
+    direction: desc
+
+# Used to quickly identify which of an assignee's historical course mastery
+# assignments has a due date furthest in the future within a particular
+# classroom
+- kind: SubjectMasteryAssignment
+  properties:
+  - name: historical_student_data.kaid
+  - name: coach_kaid
+  - name: student_list_id
+  - name: is_kmap
+  - name: is_archived
+  - name: due_date
+    direction: desc
+
+- kind: Assignment
+  properties:
+  - name: content_descriptor
+  - name: due_date
+
+# Used to quickly find relevant assignments for a student at assignment
+# completion time
+- kind: Assignment
+  properties:
+  - name: content_descriptor
+  - name: student_data.kaid
+  - name: is_archived
+  - name: is_draft
+
+# Used to query coach assignments (non-paged) for active/past/draft assignments
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: is_archived
+  - name: due_date
+
+# Used to query coach assignments by page - active, draft
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: is_archived
+  - name: is_draft
+  - name: student_list_id
+  - name: due_date
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used to query coach assigments by page - past
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: is_archived
+  - name: is_draft
+  - name: student_list_id
+  - name: due_date
+    direction: desc
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used for the individual student page in the coach tools
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: is_archived
+  - name: is_draft
+  - name: student_list_id
+  - name: student_data.kaid
+  - name: due_date
+    direction: desc
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used to query student assignments for mobile and assignmentCount,
+# student_has_active_assignments
+- kind: Assignment
+  properties:
+  - name: is_archived
+  - name: is_draft
+  - name: student_data.kaid
+  - name: due_date
+
+# Used to query student assignments by page - active
+- kind: Assignment
+  properties:
+  - name: is_archived
+  - name: is_draft
+  - name: student_data.kaid
+  - name: due_date
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used to query student assignments by page - past
+- kind: Assignment
+  properties:
+  - name: is_archived
+  - name: is_draft
+  - name: student_data.kaid
+  - name: due_date
+    direction: desc
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used to query student assignments by page - visible to students:
+#   - User.assigmentsPage():
+#     GetActiveStartedAssignmentsForStudentAndClassWithFilters
+- kind: Assignment
+  properties:
+  - name: student_data.kaid
+  - name: is_past_start_date
+  - name: is_draft
+  - name: is_archived
+  - name: coach_kaid
+  - name: student_list_id
+  - name: due_date
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used to query assignments visible to students:
+#   - User.assignmentCount(): see CountActiveStartedAssignmentsForStudent.
+#   - User.assignments(): see GetActiveStartedAssignmentsForStudent (DEPRECATED,
+#     but still used by old mobile versions)
+- kind: Assignment
+  properties:
+  - name: student_data.kaid
+  - name: is_past_start_date
+  - name: is_draft
+  - name: is_archived
+  - name: due_date
+
+# Used to query coach assignments visible to students by page
+#   - StudentList.assignmentsPage(): see GetAssignmentsForClassroomWithFilters.
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: student_list_id
+  - name: is_draft
+  - name: is_archived
+  - name: is_past_start_date
+  - name: due_date
+    direction: desc
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used to query coach assignments by page - drafts
+#   - StudentList.assignmentsPage(): see GetAssignmentsForClassroomWithFilters.
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: student_list_id
+  - name: is_draft
+  - name: is_archived
+  - name: is_past_start_date
+  - name: due_date
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used to query coach assignments by page - scheduled
+#   - StudentList.assignmentsPage(): see GetAssignmentsForClassroomWithFilters.
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: student_list_id
+  - name: is_draft
+  - name: is_archived
+  - name: is_past_start_date
+  - name: start_date
+    direction: asc
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used to query student assignments in mobile
+#   - HomepageNavigationClass.incompleteAssignmentsCount(): Found via
+#     CountActiveStartedIncompleteAssignmentsForStudentInClassroom.
+- kind: Assignment
+  properties:
+  - name: student_data.kaid
+  - name: coach_kaid
+  - name: student_list_id
+  - name: is_draft
+  - name: is_archived
+  - name: is_past_start_date
+  - name: due_date
+    direction: desc
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+
+# Used for user deletion
+- kind: Assignment
+  properties:
+  - name: is_archived
+  - name: student_data.kaid
+  - name: due_date
+
+# Used to identify whether a coach has _any_ assignment for the student list
+# completion time
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: student_list_id
+  - name: is_archived
+
+# Used for GetActiveStartedAssignmentsForStudentAndClassWithFilters(); found via
+# TestAssignmentsForUser/TestGetActiveStartedAssignmentsForStudentAndClassWithFilters
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: content_index_within_subject_tree
+  - name: due_date
+  - name: is_archived
+  - name: is_draft
+  - name: student_data.kaid
+  - name: student_list_id
+  - name: subject_slug
+
+# Used for the map_datastore_entities flow that identifies upcoming Scheduled
+# Assignments that need a Cloud Tasks job to post them at the appropriate time.
+# For details, see:
+# https://khanacademy.atlassian.net/wiki/spaces/ENG/pages/435978637/assignments#How-do-Scheduled-Assignments-get-posted%3F
+- kind: Assignment
+  properties:
+  - name: is_archived
+  - name: is_draft
+  - name: is_past_start_date
+  - name: start_date
+
+# Used to query non-draft assignments with particular content descriptors so
+# we can show "Assigned"/"Scheduled" next to content items in the topic tree.
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: student_list_id
+  - name: content_descriptor
+  - name: is_draft
+  - name: is_archived
+  - name: is_past_start_date
+
+# Used to query paginated settings changes a user made on behalf of others
+- kind: UserSettingsChangeLog
+  properties:
+  - name: actor_kaid
+  - name: timestamp
+    direction: desc
+
+# Used to query paginated settings changes made for a target user by others
+- kind: UserSettingsChangeLog
+  properties:
+  - name: target_kaid
+  - name: timestamp
+    direction: desc
+
+# It's unclear if code actually ever executes this, but tests do:
+# TestUserSettingsChangeLogSuite/TestGetByTimestampAndTargetForActor.
+- kind: UserSettingsChangeLog
+  properties:
+  - name: actor_kaid
+  - name: target_kaid
+  - name: timestamp
+    direction: desc
+
+- kind: ArticleRevision
+  properties:
+  - name: content_id
+  - name: creation_date
+    direction: desc
+
+- kind: AccountDeletionRequest
+  properties:
+  - name: cancelled
+  - name: fulfilled
+  - name: date
+    direction: desc
+
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- kind: AssessmentParams
+  properties:
+  - name: slug
+  - name: version
+    direction: desc
+
+- kind: BaseNotification
+  properties:
+  - name: brand_new
+  - name: user_id
+  - name: date
+    direction: desc
+
+- kind: BaseNotification
+  properties:
+  - name: class
+  - name: user_id
+  - name: date
+    direction: desc
+
+- kind: BaseNotification
+  properties:
+  - name: user_id
+  - name: date
+    direction: desc
+
+- kind: BaseUserMission
+  properties:
+  - name: class
+  - name: user_key
+  - name: last_active
+    direction: desc
+
+- kind: BaseUserMission
+  properties:
+  - name: user_key
+  - name: last_active
+    direction: desc
+
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- kind: DailyStatisticLog
+  properties:
+  - name: stat_name
+  - name: dt
+    direction: desc
+
+- kind: Feedback
+  properties:
+  - name: author_user_id
+  - name: deleted
+  - name: types
+  - name: sum_votes
+    direction: desc
+  - name: date
+    direction: desc
+
+- kind: Feedback
+  properties:
+  - name: author_user_id
+  - name: types
+  - name: date
+    direction: desc
+
+- kind: Feedback
+  properties:
+  - name: author_user_id
+  - name: types
+  - name: sum_votes
+    direction: desc
+  - name: date
+    direction: desc
+
+- kind: Feedback
+  properties:
+  - name: definitely_not_spam
+  - name: deleted
+  - name: types
+  - name: low_quality_score
+    direction: desc
+
+- kind: Feedback
+  properties:
+  - name: deleted
+  - name: is_flagged
+  - name: types
+  - name: sum_votes
+
+# Used by util_scratchpads.cleanup_scratchpad_feedback
+- kind: Feedback
+  properties:
+  - name: answer_count
+  - name: deleted
+  - name: types
+  - name: date
+
+# Used in querying for the unanswered feedbacks from user/users
+#  from /api/internal/class/scratchpads?projectState=needs-eval
+- kind: Feedback
+  properties:
+  - name: answer_count
+  - name: author_user_id
+  - name: deleted
+  - name: types
+  - name: date
+    direction: desc
+
+# NOTE(jeresig): Is this index no longer used?
+- kind: Feedback
+  properties:
+  - name: topic_ids
+  - name: types
+  - name: date
+
+# For searching topic-level q&a
+- kind: Feedback
+  properties:
+  - name: deleted
+  - name: language_tag
+  - name: topic_ids
+  - name: types
+  - name: answer_count
+  - name: date
+    direction: desc
+
+- kind: FeedbackVote
+  properties:
+  - name: user
+  - name: date
+    direction: desc
+
+- kind: LearningTask
+  properties:
+  - name: class
+  - name: is_completed
+  - name: user_key
+  - name: due_date
+
+- kind: LearningTask
+  properties:
+  - name: class
+  - name: is_completed
+  - name: rejected
+  - name: user_key
+  - name: due_date
+
+- kind: LearningTask
+  properties:
+  - name: class
+  - name: is_completed
+  - name: content_key
+  - name: user_key
+
+# Used to find an AssessmentTask by slug and user_key when
+# calculating tasks.
+- kind: LearningTask
+  properties:
+  - name: class
+  - name: is_completed
+  - name: assessment_slug
+  - name: user_key
+  - name: is_topic_assessment
+
+- kind: LearningTask
+  properties:
+  - name: class
+  - name: user_key
+  - name: domain
+  - name: is_completed
+  - name: is_library_task
+
+- kind: LearningTask
+  properties:
+  - name: class
+  - name: skill_id
+  - name: user_key
+  - name: exercise_name
+  - name: is_completed
+  - name: is_library_task
+
+- kind: LearningTask
+  properties:
+  - name: class
+  - name: user_key
+  - name: assignment_key
+
+- kind: LearningTask
+  properties:
+  - name: class
+  - name: __scatter__
+
+- kind: ModerationLog
+  properties:
+  - name: class
+  - name: date
+    direction: desc
+
+- kind: ProblemLog
+  properties:
+  - name: correct
+  - name: exercise
+  - name: time_done
+    direction: desc
+
+- kind: ProblemLog
+  properties:
+  - name: exercise
+  - name: user
+  - name: time_done
+
+- kind: ProblemLog
+  properties:
+  - name: exercise
+  - name: user
+  - name: time_done
+    direction: desc
+
+- kind: ProblemLog
+  properties:
+  - name: user
+  - name: time_done
+
+- kind: ProblemLog
+  properties:
+  - name: kaid
+  - name: time_done
+
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- kind: ProblemLogSummary
+  properties:
+  - name: date_done_str
+  - name: __scatter__
+
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- kind: StemmedIndex
+  properties:
+  - name: __key__
+    direction: desc
+
+- kind: SubmittedStory
+  properties:
+  - name: published
+  - name: date
+    direction: desc
+
+- kind: TestPrepProblemLog
+  properties:
+  - name: kaid
+  - name: time_done
+
+- kind: TopicPublishStatus
+  ancestor: yes
+  properties:
+  - name: queue_insert_time
+    direction: desc
+
+- kind: UserBadge
+  properties:
+  - name: badge_name
+  - name: date
+
+- kind: UserBadge
+  properties:
+  - name: user_key
+  - name: badge_name
+  - name: date
+    direction: desc
+
+- kind: UserBadge
+  properties:
+  - name: user_key
+  - name: date
+
+- kind: UserBadge
+  properties:
+  - name: user
+  - name: badge_name
+  - name: date
+    direction: desc
+
+- kind: UserBadge
+  properties:
+  - name: user
+  - name: date
+
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- kind: UserChallenge
+  properties:
+  - name: challenge.badge_name
+  - name: challenge.dt_start_utc
+  - name: is_registered
+  - name: team_key
+
+- kind: UserData
+  properties:
+  - name: __key__
+    direction: desc
+
+- kind: UserData
+  properties:
+  - name: birthdate_str
+  - name: __scatter__
+
+- kind: UserEvent
+  properties:
+  - name: class
+  - name: user_key
+  - name: date
+
+- kind: UserTopic
+  properties:
+  - name: user
+  - name: last_worked_on
+    direction: desc
+
+- kind: UserTopic
+  properties:
+  - name: kaid
+  - name: last_worked_on
+    direction: desc
+
+- kind: UserVideo
+  properties:
+  - name: __key__
+    direction: desc
+
+- kind: UserVideo
+  properties:
+  - name: user
+  - name: last_watched
+
+- kind: UserVideo
+  properties:
+  - name: user
+  - name: last_watched
+    direction: desc
+
+- kind: UserVideo
+  properties:
+  - name: kaid
+  - name: last_watched
+    direction: desc
+
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- kind: Video
+  properties:
+  - name: __key__
+    direction: desc
+
+- kind: VideoLog
+  properties:
+  - name: user
+  - name: time_watched
+
+- kind: VideoLog
+  properties:
+  - name: user
+  - name: video
+  - name: time_watched
+
+- kind: ChallengeLog
+  properties:
+  - name: user_key
+  - name: time_done
+
+- kind: _AE_Pipeline_Record
+  properties:
+  - name: is_root_pipeline
+  - name: start_time
+    direction: desc
+
+# Needed for using the pipeline filtering dropdown (i.e.
+# https://www.khanacademy.org/_pipeline/list?class_path=X)
+- kind: _AE_Pipeline_Record
+  properties:
+  - name: class_path
+  - name: is_root_pipeline
+  - name: start_time
+    direction: desc
+
+# The GAE/Bingo models are kept around in case we want to refer to them again,
+# but they no longer live in the code.
+- kind: _GAEBingoExperiment
+  properties:
+  - name: archived
+  - name: canonical_name
+
+- kind: _GAEBingoSnapshotLog
+  ancestor: yes
+  properties:
+  - name: time_recorded
+    direction: desc
+
+- kind: UserData
+  properties:
+  - name: is_parent
+  - name: __scatter__
+
+- kind: UserData
+  properties:
+  - name: teacher
+  - name: __scatter__
+
+# Backup metadata
+- kind: _AE_Backup_Information
+  properties:
+  - name: kinds
+  - name: start_time
+    direction: desc
+
+# Updating Donations
+- kind: Donation
+  properties:
+  - name: customer_id
+  - name: subscription_id
+
+# Active donation ask in services/donations/models/donation_ask.go
+- kind: DonationAsk
+  properties:
+  - name: active
+  - name: updated_at
+    direction: desc
+
+# For the autonomous dumbledore
+- kind: CollegeBoardTestResult
+  ancestor: yes
+  properties:
+  - name: test_type
+  - name: end_time
+
+# In content_editing/history.py
+- kind: ContentIndex
+  properties:
+  - name: content_id
+  - name: content_kind
+  - name: commit_date
+    direction: desc
+
+# In content_editing/history.py
+- kind: ContentIndex
+  properties:
+  - name: commit_locale
+  - name: content_id
+  - name: content_kind
+  - name: commit_date
+    direction: desc
+
+# In mappers/models.py
+- kind: MappersTopics
+  properties:
+  - name: user_kaid
+  - name: created
+    direction: desc
+
+# For finding approved Under13Users with a certain parent email
+# to quickly check if we need to potentially link parents to their
+# children's accounts.
+- kind: Under13User
+  properties:
+  - name: parent_email
+  - name: approval_given_at
+
+# For finding active, whole-class assignments. Used for auto-assigning late-
+# joining students in a class to the assignments we find.
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: is_archived
+  - name: is_assigned_to_entire_class
+  - name: student_list_id
+  - name: due_date
+
+# For quickly finding coaches, coachees, parents, children, teachers, students.
+- kind: CoachCoacheePair
+  properties:
+  - name: coach_kaid
+  - name: coach_type
+
+- kind: CoachCoacheePair
+  properties:
+  - name: __key__
+  - name: coach_type
+
+# For quickly identifying when we need to update a CoachRosterCache
+- kind: CoachCoacheePair
+  properties:
+  - name: coach_kaid
+  - name: backup_timestamp
+
+# For finding a coach's classroom students
+# TODO_COTEACHING(sean, CLASS-7315): remove this old index once we stop using
+# `student_list_ids` (in favor of `classrooms.key`)
+- kind: CoachCoacheePair
+  properties:
+  - name: coach_kaid
+  - name: student_list_ids
+
+# For finding a coach's classroom students
+- kind: CoachCoacheePair
+  properties:
+  - name: coach_kaid
+  - name: classrooms.key
+
+# For finding a UserDistrictInfo based on a district key and a district-
+# provided identifier.
+- kind: UserDistrictInfo
+  properties:
+  - name: district
+  - name: district_provided_identifier
+
+# For finding a ClassroomDistrictInfo based on a teacher_kaid and a
+# classroom_id.
+- kind: ClassroomDistrictInfo
+  properties:
+  - name: teacher_kaid
+  - name: classroom_id
+
+# For finding sessions for a particular user.
+- kind: ActivitySession
+  properties:
+  - name: kaid
+  - name: local_timestamp
+    direction: desc
+
+# For finding sessions by a certain activity kind.
+- kind: ActivitySession
+  properties:
+  - name: kaid
+  - name: activity_kind
+  - name: local_timestamp
+    direction: desc
+
+# For finding newer sessions for a particular user,
+# which haven't yet been summarized in daily or monthly times.
+- kind: ActivitySession
+  properties:
+  - name: kaid
+  - name: backup_timestamp
+
+# User's sessions filtered by course type.
+- kind: ActivitySession
+  properties:
+  - name: kaid
+  - name: course_type
+  - name: local_timestamp
+    direction: desc
+
+# User's sessions filtered by course type + activity kind.
+- kind: ActivitySession
+  properties:
+      - name: kaid
+      - name: activity_kind
+      - name: course_type
+      - name: local_timestamp
+        direction: desc
+
+# User's activity time. This index is necessary because we are using two
+# inequality filters (for start_date and end_date).
+- kind: DailyActivityTime
+  properties:
+  - name: kaid
+  - name: date
+
+- kind: RosterJob
+  properties:
+  - name: district
+  - name: roster_source
+  - name: created_at
+    direction: desc
+
+# Composite Index for GetEphemeraReportRecordForKAID query
+- kind: EphemeralRecordEvent
+  properties:
+  - name: kaid
+  - name: created_at
+    direction: desc
+
+- kind: CleverLibraryClassroomInfo
+  properties:
+  - name: teacher_kaid
+  - name: classroom_id
+
+- kind: MapTestResult
+  properties:
+  - name: student_udi_id
+  - name: updated_at
+    direction: desc
+
+# TestPrep*Task indices for descriptor queries
+- kind: TestPrepSkillTask
+  properties:
+  - name: kaid
+  - name: exam_id
+  - name: checkpoint
+    direction: desc
+
+- kind: TestPrepTimedMiniSectionTask
+  properties:
+  - name: kaid
+  - name: exam_id
+
+- kind: TestPrepTestSectionTask
+  properties:
+  - name: kaid
+  - name: exam_id
+  - name: checkpoint
+    direction: desc
+
+- kind: TestPrepExpressDiagnosticTask
+  properties:
+  - name: kaid
+  - name: exam_id
+
+#### BEGIN INDEXES MAY NOT BE USED ANYMORE
+# When you run `gcloud datastore indexes cleanup index.yaml`, this deletes all
+# indexes defined in prod that aren't defined in this file, even if those
+# indexes are being used in production. This can be scary and is not automated,
+# so folks over time have avoided actually deleting indexes in prod.
+#
+# The list of indexes in this section were previously deleted from this file,
+# but were never removed from production. We added them back in late 2019 so
+# that we could safely remove a subset of them using the cleanup util and stay
+# under our quota of datastore indexes.
+#
+# Note that it's very possible that some of the indexes outside this section
+# may be unused now too - it's difficult to know for certain without auditing
+# each index one by one.
+#
+# After you are interested in seeing a list of indexes that would be deleted
+# after making a change to this file, use the `tools/index_yaml_diff.py`
+# script, which will compare this file against our prod config.
+
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: is_archived
+  - name: is_draft
+  - name: student_list_id
+  - name: due_date
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: is_archived
+  - name: is_draft
+  - name: student_list_id
+  - direction: desc
+    name: due_date
+- kind: Assignment
+  properties:
+  - name: coach_kaid
+  - name: is_archived
+  - name: is_draft
+  - name: student_list_id
+  - name: subject_slug
+  - name: content_index_within_subject_tree
+  - direction: desc
+    name: due_date
+- kind: Assignment
+  properties:
+  - name: creator_kaid
+  - direction: desc
+    name: created_on
+- kind: Assignment
+  properties:
+  - name: is_archived
+  - name: is_assigned_to_entire_class
+  - name: coach_kaid
+  - name: student_list_id
+- kind: EduOrganization
+  properties:
+  - name: has_program_enrollments
+  - name: is_valid
+  - name: student_count
+  - name: date_created
+- kind: EduOrganization
+  properties:
+  - name: has_program_enrollments
+  - name: is_valid
+  - name: student_count
+- kind: EduOrganization
+  properties:
+  - name: is_valid
+  - name: source_db_ref.source_name
+  - name: date_created
+- kind: Feedback
+  properties:
+  - name: deleted
+  - name: language_tag
+  - name: targets
+  - name: date
+- kind: Feedback
+  properties:
+  - name: language_tag
+  - name: topic_ids
+  - name: types
+  - name: answer_count
+- kind: Feedback
+  properties:
+  - name: language_tag
+  - name: topic_ids
+  - name: types
+  - direction: desc
+    name: date
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- ancestor: true
+  kind: FrozenModelStore
+  properties:
+  - name: index
+- ancestor: true
+  kind: FrozenRevisionStore
+  properties:
+  - name: index
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- ancestor: true
+  kind: LogCompletionMarker
+  properties:
+  - name: end_time
+- kind: School
+  properties:
+  - name: approval_status
+  - name: name
+- kind: School
+  properties:
+  - name: eligible_students
+  - name: name
+- kind: School
+  properties:
+  - name: eligible_students
+  - direction: desc
+    name: registered_students
+- kind: School
+  properties:
+  - name: eligible_students_status
+  - name: name
+- kind: School
+  properties:
+  - name: ls_region
+  - name: maximum_grade
+  - name: minimum_grade
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - direction: desc
+    name: created
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: hide_from_hotlist
+  - name: origin_similarity
+  - direction: desc
+    name: created
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: hide_from_hotlist
+  - name: origin_similarity
+  - direction: desc
+    name: time_dependent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: hide_from_hotlist
+  - name: origin_similarity
+  - direction: desc
+    name: time_independent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: hide_from_hotlist
+  - name: origin_similarity
+  - direction: desc
+    name: upvotes
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: origin_similarity
+  - direction: desc
+    name: created
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: origin_similarity
+  - direction: desc
+    name: time_dependent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: origin_similarity
+  - direction: desc
+    name: time_independent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - name: origin_similarity
+  - direction: desc
+    name: upvotes
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - direction: desc
+    name: time_dependent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - direction: desc
+    name: time_independent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: deleted
+  - direction: desc
+    name: upvotes
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_is_project
+  - name: topic_ids
+  - name: origin_similarity
+  - direction: desc
+    name: created
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_is_project
+  - name: topic_ids
+  - name: origin_similarity
+  - direction: desc
+    name: time_dependent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_is_project
+  - name: topic_ids
+  - name: origin_similarity
+  - direction: desc
+    name: upvotes
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_is_project
+  - name: topic_ids
+  - name: unique_enough
+  - direction: desc
+    name: created
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_is_project
+  - name: topic_ids
+  - name: unique_enough
+  - direction: desc
+    name: time_dependent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_is_project
+  - name: topic_ids
+  - name: unique_enough
+  - direction: desc
+    name: upvotes
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_similarity
+  - direction: desc
+    name: created
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_similarity
+  - direction: desc
+    name: time_dependent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_similarity
+  - direction: desc
+    name: time_independent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: origin_similarity
+  - direction: desc
+    name: upvotes
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: topic_ids
+  - name: unique_enough
+  - direction: desc
+    name: created
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: topic_ids
+  - name: unique_enough
+  - direction: desc
+    name: time_dependent_score
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: topic_ids
+  - name: unique_enough
+  - direction: desc
+    name: upvotes
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: unique_enough
+  - direction: desc
+    name: created
+- kind: Scratchpad
+  properties:
+  - name: by_child
+  - name: hide_from_hotlist
+  - name: unique_enough
+  - direction: desc
+    name: time_dependent_score
+- kind: Scratchpad
+  properties:
+  - name: category
+  - name: origin_is_project
+  - name: topic_ids
+  - direction: desc
+    name: created
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- kind: UserAssessment
+  properties:
+  - name: slug
+  - name: user_id
+  - name: is_topic_assessment
+  - direction: desc
+    name: time_started
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- kind: UserAssessment
+  properties:
+  - name: slug
+  - name: user_id
+  - direction: desc
+    name: time_started
+- kind: UserData
+  properties:
+  - name: last_modified_as_mapreduce_epoch
+  - name: __scatter__
+- kind: UserData
+  properties:
+  - name: user
+  - direction: desc
+    name: points
+- kind: UserData
+  properties:
+  - name: user_email
+  - direction: desc
+    name: points
+- kind: UserData
+  properties:
+  - name: user_id
+  - direction: desc
+    name: points
+- kind: UserExercise
+  properties:
+  - name: exercise
+  - name: user
+  - direction: desc
+    name: total_done
+- kind: UserExercise
+  properties:
+  - name: user
+  - name: proficient_date
+- kind: UserExercise
+  ancestor: yes
+  properties:
+  - name: last_done
+# TODO(dhruv): we don't currently have a ndb or db model of this kind. Confirm
+# that there isn't any other usage for this index and then remove it.
+- kind: YouTubeAnalytics
+  properties:
+  - name: video_id
+  - direction: desc
+    name: query_end_date
+- kind: _AE_MR_MapreduceState
+  properties:
+  - name: result_status
+  - name: start_time
+
+#### END INDEXES THAT MAY NOT BE USED ANYMORE

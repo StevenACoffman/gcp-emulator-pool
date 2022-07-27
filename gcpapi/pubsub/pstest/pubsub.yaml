@@ -1,0 +1,473 @@
+# This is a Khan-academy specific yaml file that holds our pubsub config.
+# It is used at deploy time to make sure all topics and subscriptions
+# that our code uses, have been created on Google.
+#
+# The format of this file is a list of topics.  For each topic we list
+# all the subscriptions that listen on the topic.  Each subscription
+# includes its own configuration.  For instance, push subscriptions
+# need the url-callback that will be called when something is
+# published to that topic.  The url-callback should include the
+# service-name that did the subscription, e.g.
+#    https://mobile-data-dot-khan-academy.appspot.com/pubsub/mytopic
+#
+# Here is an example entry (though I hope you're not overriding this
+# many defaults in real life!)
+#   - topic: mytopic
+#     subscriptions:
+#       dataflow_reader:
+#       python_reader:
+#         endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/mytopic
+#         ackDeadlineSeconds: 60
+#         expirationTtl: 86400s
+#         retainAckedMessages: true
+#
+# Unless overridden below, subscriptions use the following defaults:
+#   * pull subscription (that is, no callback-url)
+#   * ackDeadlineSeconds: 10
+#   * expirationTtl: 2678400s   # 1 month
+#   * messageRetentionDuration: 604800s
+#   * retainAckedMessages: false
+#
+# Dev-Only subscriptions:
+#   Certain subscriptions are set up for developer convenience.
+#   These are named with a "devOnly_" prefix, and are used only
+#   by the emulator for local testing purposes and are not set up
+#   in prod.
+#
+# -- FINDING SUBSCRIPTIONS:
+# I break this file into sections based on where I found
+# the topics in our source code; each section says how I found the
+# entries in it.  Here is how I found the subscriptions.
+# 1) I found subs in python code via:
+#       git grep -A2 '\<Subscription(' | grep -v _test.py | tr "'" '"' | grep '"' | grep -e 'Subscription(' -e '- *"' | cut -d'"' -f2 | sort -u
+#    I had to look at the source code to find the topic for each subscription.
+# 2) I found some subs in dataflow jobs via:
+#       git grep -oh 'projects/khan-academy/subscriptions/[^"]*' '*.kts' | fgrep -v $ | sort -u | cut -d/ -f4
+# 3) Many dataflow subscription-names had `$`s (variables) in them, so I
+#    had to manually figure out what they actually were.  I did so via:
+#       git grep -l 'projects/khan-academy/subscriptions/.*\$' '*/build.gradle.kts' | grep -v proto-log-stream- | xargs less
+# In general, our source code (python) uses push subscriptions,
+# which you can identify by the `endpoint` param.  Our dataflow
+# jobs use pull subscriptions and lack an `endpoint` param.
+# ---------------------------------------------------------------------
+
+# These topics are used by our Python code.  I found them via:
+#    git grep -w -A2 -e PubSubTopic -e PubSubProtobufTopic | grep -v _test.py | tr "'" '"' | grep '"' | grep -e 'PubSubTopic(' -e 'PubSubProtobufTopic(' -e '- *"' | cut -d'"' -f2 | sort -u
+
+- topic: analytics-events
+  subscriptions:
+    devOnly_push_sub_analytics:
+      endpoint: https://analytics-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/test_push_sub
+      ackDeadlineSeconds: 60
+
+- topic: article_revisions
+  subscriptions:
+    article_revisions_to_bigquery:
+      endpoint: https://khan-academy.appspot.com/api/internal/pubsub/subscription/article_revisions_to_bigquery
+
+- topic: assessment_item_revisions
+  subscriptions:
+    assessment_item_revisions_to_bigquery:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/assessment_item_revisions_to_bigquery
+
+- topic: bingo_conversion_event
+  subscriptions:
+    learning-time-compactor:
+    bingo_conversion_event:
+    bingo-conversion-event-proto-archiver:
+
+- topic: bingo_participation_event
+  subscriptions:
+    bingo_participation_event:
+    bingo-participation-event-proto-archiver:
+
+- topic: campaign_enrollment_event
+  subscriptions:
+    campaign_enrollment_event:
+    campaign-enrollment-event-proto-archiver:
+
+- topic: content_commit
+  subscriptions:
+    content_commit_to_bigquery:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/content_commit_to_bigquery
+
+- topic: content_publish
+  subscriptions:
+    content_publish_to_bigquery:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/content_publish_to_bigquery
+
+- topic: content_stage
+  subscriptions:
+    content_stage_to_bigquery:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/content_stage_to_bigquery
+
+- topic: debug_logs
+  subscriptions:
+    debug_logging:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/debug_logging
+
+
+- topic: district_set_clever_id_on_linked_user
+  subscriptions:
+    district_nwea_to_clever_set_id:
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/district_nwea_to_clever_set_id?token=9z35721x6ab3s
+
+- topic: district_teacher
+  subscriptions:
+    district_teacher_change_go:
+      # using token authentication https://cloud.google.com/appengine/docs/flexible/python/writing-and-responding-to-pub-sub-messages
+      # sync-start:district-pubsub-token 431355130 services/districts/pubsub_handler.go
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/district_teacher_change_go?token=9z35721x6ab3s
+      # sync-end:district-pubsub-token
+      ackDeadlineSeconds: 600
+
+- topic: district_teacher_activation_email
+  subscriptions:
+    district_teacher_activation_email_send_go:
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/district_teacher_activation_email_send_go?token=9z35721x6ab3s
+
+- topic: district_teacher_welcome_back_email
+  subscriptions:
+    district_teacher_welcome_back_email_send:
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/district_teacher_welcome_back_email_send?token=9z35721x6ab3s
+
+- topic: district_year_end
+  subscriptions:
+    district_year_end_cleanup:
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/district_year_end_cleanup?token=9z35721x6ab3s
+      ackDeadlineSeconds: 60
+
+- topic: district_uncoach_students
+  subscriptions:
+    district_uncoach_students:
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/district_uncoach_students?token=9z35721x6ab3s
+
+- topic: district_hard_delete
+  subscriptions:
+    district_hard_delete_udi:
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/district_hard_delete_udi?token=9z35721x6ab3s
+      ackDeadlineSeconds: 60
+
+- topic: district_dedup_udi
+  subscriptions:
+    district_dedup_udi_go:
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/district_dedup_udi_go?token=9z35721x6ab3s
+      ackDeadlineSeconds: 60
+
+- topic: district_change_email_udi
+  subscriptions:
+    district_change_email:
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/district_change_email?token=9z35721x6ab3s
+      ackDeadlineSeconds: 60
+
+- topic: district_create_report_ephemeral_record_event
+  subscriptions:
+    district_create_report:
+
+- topic: district_roster_event
+  subscriptions:
+    district_roster_event_job_runner:
+
+- topic: district_pull_test_results_event
+  subscriptions:
+    district_pull_test_results_event_job_runner:
+
+- topic: donation_ask_event
+  subscriptions:
+    donation_ask_event:
+    donation-ask-event-proto-archiver:
+
+- topic: donation_event
+  subscriptions:
+    pb_donation_event_processing:
+      endpoint: https://donations-dot-khan-academy.appspot.com/pubsub/subscription/pb_donation_event_processing
+      ackDeadlineSeconds: 90
+    pb_donation_event_push_to_kindful:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/pb_donation_event_push_to_kindful
+    pb_send_donation_info_to_kindful:
+      endpoint: https://donations-dot-khan-academy.appspot.com/pubsub/subscription/pb_send_donation_info_to_kindful
+    donation_event:
+    donation-event-proto-archiver:
+
+- topic: donation_events
+  subscriptions:
+    donation_event_logging:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/donation_event_logging
+    donation_event_processing:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/donation_event_processing
+    donation_event_push_to_kindful:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/donation_event_push_to_kindful
+
+- topic: donation_without_kaid_event
+  subscriptions:
+    update_donations_and_salesforce_with_kaid:
+      endpoint: https://donations-dot-khan-academy.appspot.com/pubsub/subscription/update_donations_and_salesforce_with_kaid
+      ackDeadlineSeconds: 30
+
+- topic: donation_log_event
+  subscriptions:
+    donation_log_event:
+    donation-log-event-proto-archiver:
+
+- topic: entity_deletion_log
+  subscriptions:
+    entity_deletion_log:
+    entity-deletion-log-proto-archiver:
+
+- topic: exercise_issue
+  subscriptions:
+    exercise_issue_to_bigquery:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/exercise_issue_to_bigquery
+
+- topic: exercise_revisions
+  subscriptions:
+    exercise_revisions_to_bigquery:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/exercise_revisions_to_bigquery
+
+- topic: exercise_task_load
+  subscriptions:
+    exercise-task-load-proto-archiver:
+    exercise-task-load-proto-to-bigquery:
+    assignments_exercise_task_start:
+      # using Districts precedent of token authentication https://cloud.google.com/appengine/docs/flexible/python/writing-and-responding-to-pub-sub-messages
+      endpoint: https://assignments-dot-khan-academy.appspot.com/pubsub/assignments_exercise_task_start?token=gMpZkA14EKS4J
+
+- topic: kalog
+  subscriptions:
+    kalog:
+    kalog-proto-archiver:
+
+- topic: katex_error
+  subscriptions:
+    katex_error:
+    katex-error-proto-archiver:
+
+- topic: mastery_level_change_v2
+  subscriptions:
+    masterytoreportssql:
+    masteryskillleveltosql:
+    mastery_level_change_v2_populate-activity-sessions:
+
+- topic: mobile_perf
+  subscriptions:
+    mobile_perf:
+    mobile-perf-proto-archiver:
+
+- topic: page_load_perf
+  subscriptions:
+    page_load_perf:
+    page-load-perf-proto-archiver:
+
+# These are temporary subscriptions for testing the move of mobile_perf
+# and page_perf to Go.  Remove them after testing is done, definitely
+# after 1 November 2021.
+- topic: mobile_perf_go
+  subscriptions:
+    mobile_perf_go:
+- topic: page_load_perf_go
+  subscriptions:
+    page_load_perf_go:
+
+- topic: post_rostering_tasks
+  subscriptions:
+    post_roster_start_go:
+      endpoint: https://districts-dot-khan-academy.appspot.com/pubsub/post_roster_start_go?token=9z35721x6ab3s
+      ackDeadlineSeconds: 600
+    post_roster_update_window_grades:
+      endpoint: https://progress-reports-dot-khan-academy.appspot.com/pubsub/post_roster_update_window_grades?token=9z35721x6ab3s
+
+- topic: problem_attempt_event
+  subscriptions:
+    problem_attempt_event_populate-activity-sessions:
+    problem_attempt_event:
+    problem-attempt-event-proto-archiver:
+
+- topic: problem_attempts
+  subscriptions:
+    problem_attempts_to_bigquery:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/problem_attempts_to_bigquery
+
+- topic: problem_log_updates
+  subscriptions:
+    problem_log_updates_to_bigquery:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/problem_log_updates_to_bigquery
+
+- topic: sat_activity_log_event
+  subscriptions:
+    sat_activity_log_event:
+    sat-activity-log-event-proto-archiver:
+
+- topic: site_event
+  subscriptions:
+    site_event:
+    site-event-proto-archiver:
+
+- topic: standards_mapping
+  subscriptions:
+    standards_mapping_logging:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/standards_mapping_logging
+
+- topic: topic_revisions
+  subscriptions:
+    topic_revisions_to_bigquery:
+      endpoint: https://khan-academy.appspot.com/api/internal/pubsub/subscription/topic_revisions_to_bigquery
+
+- topic: video_log_event
+  subscriptions:
+    video_log_event:
+    video-log-event-proto-archiver:
+
+# We don't archive these to GCS (just to bigquery), so there's just one subscription
+- topic: user_email_subscription_event
+  subscriptions:
+    user_email_subscription_event:
+
+- topic: parent_report_user_email_subscription_event
+  subscriptions:
+    coach-service-send-parent-email:
+      endpoint: https://coaches-dot-khan-academy.appspot.com/pubsub/send_parent_email
+
+- topic: coach_report_user_email_subscription_event
+  subscriptions:
+    coach-service-send-teacher-report-email:
+      endpoint: https://coaches-dot-khan-academy.appspot.com/pubsub/send_teacher_report_email
+
+- topic: video_revisions
+  subscriptions:
+    video_revisions_to_bigquery:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/video_revisions_to_bigquery
+
+# proto-log-stream-archiver and -export and -lake create a topic and
+# subscription for every protobuf.  (NOTE: It's possible for users to
+# manually override the default pubsub topic when starting these
+# jobs on the commandline, but this config file is not responsible
+# for managing those.)  I figured this out via:
+#    git ls-files '**.proto' | xargs -iFOO basename FOO .proto | grep -v -e ^common -e ^google_python_key_ref | sort
+# Unless used from python, each of these topics has two subscribers,
+# one for the archiver and one for the exporter.  Their names
+# can be deduced from the name of the topic:
+#   - sat_activity_log_event
+#     - subscription: sat_activity_log_event
+#     - subscription: sat-activity-log-event-proto-archiver
+# I omit here all topics that were already handled in python.
+
+- topic: learning_time
+  subscriptions:
+    learning_time:
+    learning-time-proto-archiver:
+
+- topic: mastery_level_change
+  subscriptions:
+    mastery_level_change:
+    mastery-level-change-proto-archiver:
+
+- topic: rostering
+  subscriptions:
+    rostering:
+    rostering-proto-archiver:
+
+# We don't archive these to GCS (just to bigquery), so there's just one subscription
+- topic: side_by_side_result
+  subscriptions:
+    side_by_side_result:
+
+# We don't archive these to GCS (just to bigquery), so there's just one subscription
+- topic: college_board_linking_event
+  subscriptions:
+    college_board_linking_event:
+
+- topic: coaching_changes_pb
+  subscriptions:
+    # Used to archive these protobufs to BigQuery for data analytics purposes.
+    coaching_change:
+    coaching_changes_to_monolith_data:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/coaching_changes_to_monolith_data
+    coaching_changes_roster_cache:
+      endpoint: https://coaches-dot-khan-academy.appspot.com/pubsub/coaching_changes_roster_cache
+
+- topic: classroom_change
+  subscriptions:
+    classroom_change_notify_assignments:
+      endpoint: https://assignments-dot-khan-academy.appspot.com/pubsub/classroom_change_notify_assignments
+      # Increased timeout allows us to remove student references from non-
+      # posted assignments (scheduled or draft) when a student is removed from
+      # a classroom
+      ackDeadlineSeconds: 120
+    classroom_change_notify_assignments_course_mastery_assignments:
+      endpoint: https://assignments-dot-khan-academy.appspot.com/pubsub/classroom_change_remove_students_from_course_mastery_assignments
+    classroom_changes_to_monolith_data:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/classroom_changes_to_monolith_data
+    classroom_change_to_sat_monolith:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/classroom_change_to_sat_monolith
+
+- topic: classroom_deleted
+  subscriptions:
+    classroom_delete_notify_assignments:
+      endpoint: https://assignments-dot-khan-academy.appspot.com/pubsub/classroom_delete_notify_assignments
+      ackDeadlineSeconds: 600
+    classroom_delete_notify_assignments_course_mastery_assignments:
+      endpoint: https://assignments-dot-khan-academy.appspot.com/pubsub/classroom_delete_cleanup_course_mastery_assignments
+      ackDeadlineSeconds: 600
+
+- topic: classroom_sat_status_change
+  subscriptions:
+    classroom_sat_status_change_to_monolith:
+      endpoint: https://batch-dot-khan-academy.appspot.com/api/internal/pubsub/subscription/classroom_sat_status_change_to_monolith
+
+
+# These topics are used by dataflow jobs.  I found them via:
+#    git grep -oh 'projects/khan-academy/topics/[a-zA-Z0-9._-]*' '*.kts' | cut -d/ -f4 | sort -u
+# Some topic-names had `$`s (variables) in them, so I had to manually
+# figure out what they actually were.  I did so via:
+#    git grep 'projects/khan-academy/topics/.*\$' '*/build.gradle.kts' | cut -d: -f1 | xargs less
+# I omit here the topics that were also found in python.
+
+- topic: learning_time_v2.1
+  subscriptions:
+    learning_time_monitor:
+    learning_time_v2.1_test_prep:
+    learningtimev2.1-toreportssql:
+    learning_time_v2.1_populate-activity-sessions:
+
+# These "backfill" topics do not have any associated subscription
+# (probably because we auto-delete unused subscriptions after a
+# month).  The backfills are over, so they can probably be removed!
+# TODO(csilvers): remove them.
+- topic: learning-time-v2.1-archive-backfill
+- topic: learning-time-v2.1-archive-backfill-test
+- topic: mastery-level-change-v2-archive-backfill
+- topic: mastery-level-change-v2-archive-backfill-test
+- topic: mastery_level_change_v2_backfill_test
+- topic: learning_time_v2.1_activity_session_backfill
+- topic: mastery_level_change_v2_activity_session_backfill
+# This is mentioned in a backfill but no longer exists.
+# - topic: mastery_level_change
+
+# The following topics are not mentioned in source code (that I can
+# find), but exist according to gcloud, as of 8 March 2020.  Probably
+# they once had a subscription associated with them, but the
+# subscription auto-expired.  I include them for completeness.
+# TODO(csilvers): they can probably be deleted; do so.
+- topic: bingo_conversion_event_microservice
+- topic: cloud-builds
+- topic: container-analysis-notes-v1beta1
+- topic: container-analysis-occurrences-v1beta1
+- topic: content_publish_diff
+- topic: kalog_dev
+- topic: learning_time_test
+- topic: page_load_perf_dev
+- topic: pipeline_job
+- topic: program_enrollment_changes
+- topic: react_render_logs
+- topic: reconstruction_of_request_logs
+- topic: repository-changes.default
+- topic: request_logs
+- topic: request_logs_cleaned
+- topic: request_logs_cleaned_test
+- topic: request_logs_temp
+- topic: resource-notes-notes-v1alpha1
+- topic: resource-notes-occurrences-v1alpha1
+- topic: test_topic
+- topic: test_topic_2
+- topic: user_data
+- topic: video_logs
